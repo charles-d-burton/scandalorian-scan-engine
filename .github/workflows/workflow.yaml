@@ -1,4 +1,4 @@
-name: Scandalorian Ingest Build
+name: Scandalorian Scanner Build
 
 on:
   push:
