@@ -20,7 +20,7 @@ const (
 
 var (
 	workers   int
-	workQueue = make(chan *scandaloriantypes.Scan, 5)
+	workQueue = make(chan *scandaloriantypes.PortScan, 5)
 	json      = jsoniter.ConfigCompatibleWithStandardLibrary
 )
 
@@ -82,7 +82,7 @@ func main() {
 		}
 		for message := range dch { //Wait for incoming scan requests
 			log.Info(string(message.Data))
-			var scan scandaloriantypes.Scan
+			var scan scandaloriantypes.PortScan
 			err := json.Unmarshal(message.Data, &scan)
 			if err != nil {
 				log.Error(err)
