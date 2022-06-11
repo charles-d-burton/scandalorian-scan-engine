@@ -1,14 +1,16 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
 	"github.com/Ullaakut/nmap"
 	scandaloriantypes "github.com/charles-d-burton/scandalorian-types"
 	jsoniter "github.com/json-iterator/go"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
+	"github.com/kelseyhightower/envconfig"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -24,68 +26,64 @@ var (
 	json      = jsoniter.ConfigCompatibleWithStandardLibrary
 )
 
+type ConfigSpec struct {
+	LogLevel string
+	BusHost  string `required:"true`
+	BusPort  string `required:"true"`
+	Workers  int
+}
+
 //NMAPWorker Object to run scans
 type NMAPWorker struct {
 }
 
 func main() {
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	errChan := make(chan error, 10)
 
-	log.SetFormatter(&log.JSONFormatter{})
-	v := viper.New()
-	v.SetEnvPrefix("engine")
-	v.AutomaticEnv()
-	if !v.IsSet("port") || !v.IsSet("host") {
-		log.Fatal("Must set host and port for message bus")
-	}
-	if !v.IsSet("workers") {
-		workers = 5
-	} else {
-		workers = v.GetInt("workers")
-		if workers < 1 {
-			workers = 5
-		}
+	var cs ConfigSpec
+	err := envconfig.Process("scan-engine", &cs)
+
+	if cs.Workers == 0 {
+		cs.Workers = 5
 	}
 
-	if !v.IsSet("log_level") {
-		log.SetLevel(log.InfoLevel)
-	} else {
-		level, err := log.ParseLevel(v.GetString("log_level"))
-		if err != nil {
-			log.SetLevel(log.InfoLevel)
-			log.Warn(err)
-		} else {
-			log.Info("setting log level to debug")
-			log.SetLevel(level)
-		}
+	switch cs.LogLevel {
+	case "debug":
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	case "info":
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	default:
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	}
-	host := v.GetString("host")
+
+	host := cs.BusHost
 	var bus MessageBus
+
 	if strings.Contains(host, "nats") {
 		var nats NatsConn
 		bus = &nats
 	} else {
-		log.Error("Unknown protocol for message bus host")
+		log.Fatal().Err(err).Msg("Unknown protocol for message bus.  Must be one of \"nats\" ")
 	}
-
-	bus.Connect(host, v.GetString("port"), errChan)
+	bus.Connect(host, cs.BusPort, errChan)
 	//Initialize the worker channels by interface
-	err := createWorkerPool(workers, bus)
+	err = createWorkerPool(workers, bus)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err)
 	}
 
 	go func() {
 		dch := bus.Subscribe(errChan)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal().Err(err)
 		}
 		for message := range dch { //Wait for incoming scan requests
-			log.Info(string(message.Data))
+			log.Info().Msg(string(message.Data))
 			var scan scandaloriantypes.PortScan
 			err := json.Unmarshal(message.Data, &scan)
 			if err != nil {
-				log.Error(err)
+				log.Error().Msg(err.Error())
 				message.Nak()
 				continue
 			}
@@ -97,9 +95,9 @@ func main() {
 	for err := range errChan {
 		bus.Close()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal().Err(err)
 		}
-		log.Error("unkonown error")
+		log.Error().Msg(err.Error())
 		os.Exit(1)
 	}
 }
@@ -122,10 +120,10 @@ type Run struct {
 
 func (worker *NMAPWorker) start(id int, bus MessageBus) error {
 
-	log.Infof("Starting NMAP Worker %d", id, "waiting for work...")
+	log.Info().Msg(fmt.Sprintf("Starting NMAP Worker %d", id, "waiting for work..."))
 	for scan := range workQueue {
 		if len(scan.Ports) > 0 {
-			log.Infof("Scanning ports for host %v with nmap", scan.IP)
+			log.Info().Msg(fmt.Sprintf("Scanning ports for host %v with nmap", scan.IP))
 			//pdef = strings.Join(scw.Scan.Request.Ports, ",")
 			scanner, err := nmap.NewScanner(
 				nmap.WithTargets(scan.IP),
@@ -147,15 +145,15 @@ func (worker *NMAPWorker) start(id int, bus MessageBus) error {
 				}),
 			)
 			if err != nil {
-				log.Fatalf("unable to create nmap scanner: %v", err)
+				log.Fatal().Err(err).Msg(fmt.Sprintf("unable to create nmap scanner: %v", err))
 			}
 			result, warns, err := scanner.Run()
 			if err != nil {
-				log.Fatalf("nmap scan failed: %v", err)
+				log.Fatal().Err(err).Msg(fmt.Sprintf("nmap scan failed: %v", err))
 			}
 			if len(warns) > 0 {
 				for _, warn := range warns {
-					log.Infof("Warning: %v", warn)
+					log.Info().Msg(fmt.Sprintf("Warning: %v", warn))
 				}
 			}
 			var run Run

@@ -2,10 +2,11 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	nats "github.com/nats-io/nats.go"
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 )
 
 //TODO:  This needs connection handling logic added. Currently it's pretty rudimentary on failures
@@ -18,7 +19,7 @@ type NatsConn struct {
 
 //Connect to the NATS message queue
 func (natsConn *NatsConn) Connect(host, port string, errChan chan error) {
-	log.Info("Connecting to NATS: ", host, ":", port)
+	log.Info().Msg(fmt.Sprintf("Connecting to NATS: %v:%v", host, ":", port))
 	nh := "nats://" + host + ":" + port
 	conn, err := nats.Connect(nh,
 		nats.DisconnectErrHandler(func(_ *nats.Conn, err error) {
@@ -52,7 +53,7 @@ func (natsConn *NatsConn) Publish(run *Run) error {
 	if err != nil {
 		return err
 	}
-	log.Debugf("Publishing scan: %v to topic: %v", string(data), publish)
+	log.Debug().Msg(fmt.Sprintf("Publishing scan: %v to topic: %v", string(data), publish))
 	_, err = natsConn.JS.Publish(publish, data)
 	if err != nil {
 		return err
@@ -65,7 +66,7 @@ func (natsConn *NatsConn) Publish(run *Run) error {
  */
 //Subscribe subscribe to a topic in NATS
 func (natsConn *NatsConn) Subscribe(errChan chan error) chan *Message {
-	log.Infof("Listening on topic: %v", subscription)
+	log.Info().Msg(fmt.Sprintf("Listening on topic: %v", subscription))
 	bch := make(chan *Message, 1)
 	sub, err := natsConn.JS.PullSubscribe(subscription, durableName, nats.PullMaxWaiting(128), nats.ManualAck())
 	if err != nil {
@@ -76,7 +77,7 @@ func (natsConn *NatsConn) Subscribe(errChan chan error) chan *Message {
 		for {
 			msgs, err := sub.Fetch(workers, nats.MaxWait(10*time.Second))
 			if err != nil {
-				log.Error(err)
+				log.Error().Msg(err.Error())
 			}
 			for _, msg := range msgs {
 				if err != nil {
@@ -105,14 +106,14 @@ func (natsConn *NatsConn) Close() {
 func (natsConn *NatsConn) createStream() error {
 	stream, err := natsConn.JS.StreamInfo(streamName)
 	if err != nil {
-		log.Error(err)
+		log.Error().Err(err)
 	}
 	natsConfig := &nats.StreamConfig{
 		Name:     streamName,
 		Subjects: []string{subscription},
 	}
 	if stream == nil {
-		log.Infof("creating stream %s", subscription)
+		log.Info().Msg(fmt.Sprintf("creating stream %s", subscription))
 		_, err := natsConn.JS.AddStream(natsConfig)
 		if err != nil {
 			return err
