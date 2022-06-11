@@ -84,7 +84,8 @@ func main() {
 			var scan scandaloriantypes.PortScan
 			err := json.Unmarshal(message.Data, &scan)
 			if err != nil {
-				log.Error().Msg(err.Error())
+				log.Error().Msg("unable to unmarshal data")
+				log.Debug().Msg(err.Error())
 				message.Nak()
 				continue
 			}
