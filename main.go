@@ -42,7 +42,7 @@ func main() {
 	errChan := make(chan error, 10)
 
 	var cs ConfigSpec
-	err := envconfig.Process("scan-engine", &cs)
+	err := envconfig.Process("scanengine", &cs)
 
 	if cs.Workers == 0 {
 		cs.Workers = 5
