@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/Ullaakut/nmap"
@@ -127,7 +128,7 @@ func (worker *NMAPWorker) start(id int, bus MessageBus) error {
 			//pdef = strings.Join(scw.Scan.Request.Ports, ",")
 			scanner, err := nmap.NewScanner(
 				nmap.WithTargets(scan.IP),
-				nmap.WithPorts(scan.Ports...),
+				nmap.WithPorts(convertIntsToStrings(scan.Ports)...),
 				nmap.WithServiceInfo(),
 				nmap.WithOSDetection(),
 				nmap.WithScripts("./scipag_vulscan/vulscan.nse"),
@@ -164,4 +165,12 @@ func (worker *NMAPWorker) start(id int, bus MessageBus) error {
 		}
 	}
 	return nil
+}
+
+func convertIntsToStrings(ports []int) []string {
+	vals := make([]string, len(ports))
+	for i, v := range ports {
+		vals[i] = strconv.Itoa(v)
+	}
+	return vals
 }
