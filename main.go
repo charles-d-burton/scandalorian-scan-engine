@@ -44,6 +44,7 @@ func main() {
 
 	var cs ConfigSpec
 	err := envconfig.Process("scanengine", &cs)
+	log.Info().Msg(cs.BusHost)
 
 	if cs.Workers == 0 {
 		cs.Workers = 5
@@ -74,6 +75,7 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err)
 	}
+	select {}
 
 	go func() {
 		dch := bus.Subscribe(errChan)
