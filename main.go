@@ -29,7 +29,7 @@ var (
 
 type ConfigSpec struct {
 	LogLevel string
-	BusHost  string `required:"true`
+	BusHost  string `required:"true"`
 	BusPort  string `required:"true"`
 	Workers  int
 }
@@ -67,6 +67,7 @@ func main() {
 	} else {
 		log.Fatal().Err(err).Msg("Unknown protocol for message bus.  Must be one of \"nats\" ")
 	}
+	log.Info().Msg(fmt.Sprintf("connecting to message bus: %v:%v", host, cs.BusPort))
 	bus.Connect(host, cs.BusPort, errChan)
 	//Initialize the worker channels by interface
 	err = createWorkerPool(workers, bus)
@@ -123,7 +124,7 @@ type Run struct {
 
 func (worker *NMAPWorker) start(id int, bus MessageBus) error {
 
-	log.Info().Msg(fmt.Sprintf("Starting NMAP Worker %d", id, "waiting for work..."))
+	log.Info().Msg(fmt.Sprintf("Starting NMAP Worker %d %v", id, "waiting for work..."))
 	for scan := range workQueue {
 		if len(scan.Ports) > 0 {
 			log.Info().Msg(fmt.Sprintf("Scanning ports for host %v with nmap", scan.IP))
