@@ -97,7 +97,8 @@ func main() {
 	for err := range errChan {
 		bus.Close()
 		if err != nil {
-			log.Fatal().Err(err)
+			log.Error().Msg("received error from message bus")
+			log.Debug().Err(err)
 		}
 		log.Error().Msg(err.Error())
 		os.Exit(1)
