@@ -83,6 +83,9 @@ func (natsConn *NatsConn) Subscribe(errChan chan error) chan *Message {
 		for {
 			if errcnt > 10 {
 				log.Error().Msg("exceeded maximum error threshold")
+				if !sub.IsValid() {
+					log.Error().Msg("subscription invalid")
+				}
 				//TODO: Handle this better, currently I think it'll just hang the process
 				break
 			}
@@ -104,6 +107,7 @@ func (natsConn *NatsConn) Subscribe(errChan chan error) chan *Message {
 					continue
 				}
 				msg.Ack()
+				errcnt = 0
 			}
 		}
 	}()
