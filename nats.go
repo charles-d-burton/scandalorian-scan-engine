@@ -19,7 +19,7 @@ type NatsConn struct {
 
 //Connect to the NATS message queue
 func (natsConn *NatsConn) Connect(host, port string, errChan chan error) {
-	log.Info().Msg(fmt.Sprintf("Connecting to NATS: %v:%v", host, ":", port))
+	log.Info().Msg(fmt.Sprintf("Connecting to NATS: %v:%v", host, port))
 	nh := "nats://" + host + ":" + port
 	conn, err := nats.Connect(nh,
 		nats.DisconnectErrHandler(func(_ *nats.Conn, err error) {
@@ -37,11 +37,13 @@ func (natsConn *NatsConn) Connect(host, port string, errChan chan error) {
 
 	natsConn.JS, err = conn.JetStream()
 	if err != nil {
+		log.Debug().Msg("error connecting to jetstream")
 		errChan <- err
 		return
 	}
 	err = natsConn.createStream()
 	if err != nil {
+		log.Debug().Msg("error creating stream")
 		errChan <- err
 		return
 	}

@@ -76,6 +76,8 @@ func main() {
 		log.Fatal().Err(err)
 	}
 
+	select {}
+
 	go func() {
 		dch := bus.Subscribe(errChan)
 		if err != nil {
