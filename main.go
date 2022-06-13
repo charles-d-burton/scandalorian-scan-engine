@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -68,7 +67,7 @@ func main() {
 	} else {
 		log.Fatal().Err(err).Msg("Unknown protocol for message bus.  Must be one of \"nats\" ")
 	}
-	log.Info().Msg(fmt.Sprintf("connecting to message bus: %v:%v", host, cs.BusPort))
+	log.Info().Msgf("connecting to message bus: %v:%v", host, cs.BusPort)
 	bus.Connect(host, cs.BusPort, errChan)
 	//Initialize the worker channels by interface
 	err = createWorkerPool(workers, bus)
@@ -127,10 +126,10 @@ type Run struct {
 
 func (worker *NMAPWorker) start(id int, bus MessageBus) error {
 
-	log.Info().Msg(fmt.Sprintf("Starting NMAP Worker %d %v", id, "waiting for work..."))
+	log.Info().Msgf("Starting NMAP Worker %d %v", id, "waiting for work...")
 	for scan := range workQueue {
 		if len(scan.Ports) > 0 {
-			log.Info().Msg(fmt.Sprintf("Scanning ports for host %v with nmap", scan.IP))
+			log.Info().Msgf("Scanning ports for host %v with nmap", scan.IP)
 			//pdef = strings.Join(scw.Scan.Request.Ports, ",")
 			scanner, err := nmap.NewScanner(
 				nmap.WithTargets(scan.IP),
@@ -152,15 +151,15 @@ func (worker *NMAPWorker) start(id int, bus MessageBus) error {
 				}),
 			)
 			if err != nil {
-				log.Fatal().Err(err).Msg(fmt.Sprintf("unable to create nmap scanner: %v", err))
+				log.Fatal().Err(err).Msgf("unable to create nmap scanner: %v", err)
 			}
 			result, warns, err := scanner.Run()
 			if err != nil {
-				log.Fatal().Err(err).Msg(fmt.Sprintf("nmap scan failed: %v", err))
+				log.Fatal().Err(err).Msgf("nmap scan failed: %v", err)
 			}
 			if len(warns) > 0 {
 				for _, warn := range warns {
-					log.Info().Msg(fmt.Sprintf("Warning: %v", warn))
+					log.Info().Msgf("Warning: %v", warn)
 				}
 			}
 			var run Run

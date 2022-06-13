@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	nats "github.com/nats-io/nats.go"
@@ -19,7 +18,7 @@ type NatsConn struct {
 
 //Connect to the NATS message queue
 func (natsConn *NatsConn) Connect(host, port string, errChan chan error) {
-	log.Info().Msg(fmt.Sprintf("Connecting to NATS: %v:%v", host, port))
+	log.Info().Msgf("Connecting to NATS: %v:%v", host, port)
 	nh := "nats://" + host + ":" + port
 	conn, err := nats.Connect(nh,
 		nats.DisconnectErrHandler(func(_ *nats.Conn, err error) {
@@ -43,12 +42,14 @@ func (natsConn *NatsConn) Connect(host, port string, errChan chan error) {
 		errChan <- err
 		return
 	}
+	log.Debug().Msg("creating streams")
 	err = natsConn.createStream()
 	if err != nil {
 		log.Debug().Msg("error creating stream")
 		errChan <- err
 		return
 	}
+	log.Info().Msg("successfully connected to nats")
 }
 
 //Publish push messages to NATS
@@ -57,7 +58,7 @@ func (natsConn *NatsConn) Publish(run *Run) error {
 	if err != nil {
 		return err
 	}
-	log.Debug().Msg(fmt.Sprintf("Publishing scan: %v to topic: %v", string(data), publish))
+	log.Debug().Msgf("Publishing scan: %v to topic: %v", string(data), publish)
 	_, err = natsConn.JS.Publish(publish, data)
 	if err != nil {
 		return err
@@ -70,7 +71,7 @@ func (natsConn *NatsConn) Publish(run *Run) error {
  */
 //Subscribe subscribe to a topic in NATS
 func (natsConn *NatsConn) Subscribe(errChan chan error) chan *Message {
-	log.Info().Msg(fmt.Sprintf("Listening on topic: %v", subscription))
+	log.Info().Msgf("Listening on topic: %v", subscription)
 	bch := make(chan *Message, 1)
 	sub, err := natsConn.JS.PullSubscribe(subscription, durableName, nats.PullMaxWaiting(128), nats.ManualAck())
 	if err != nil {
@@ -108,17 +109,21 @@ func (natsConn *NatsConn) Close() {
 
 //Setup the streams
 func (natsConn *NatsConn) createStream() error {
+	log.Debug().Msg("starting create stream function")
 	stream, err := natsConn.JS.StreamInfo(streamName)
+	log.Debug().Msg("stream created")
 	if err != nil {
 		log.Error().Err(err)
 	}
+	log.Debug().Msg("setting up stream config")
 	natsConfig := &nats.StreamConfig{
 		Name:     streamName,
 		Subjects: []string{subscription},
 	}
 	if stream == nil {
-		log.Info().Msg(fmt.Sprintf("creating stream %s", subscription))
+		log.Info().Msgf("creating stream %s", subscription)
 		_, err := natsConn.JS.AddStream(natsConfig)
+		log.Debug().Msg("stream created")
 		if err != nil {
 			return err
 		}
