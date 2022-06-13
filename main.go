@@ -75,15 +75,14 @@ func main() {
 		log.Fatal().Err(err)
 	}
 
-	select {}
-
 	go func() {
+		log.Info().Msg("subscribing to bus")
 		dch := bus.Subscribe(errChan)
 		if err != nil {
 			log.Fatal().Err(err)
 		}
 		for message := range dch { //Wait for incoming scan requests
-			log.Info().Msg(string(message.Data))
+			log.Debug().Msg(string(message.Data))
 			var scan scandaloriantypes.PortScan
 			err := json.Unmarshal(message.Data, &scan)
 			if err != nil {
