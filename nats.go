@@ -79,12 +79,20 @@ func (natsConn *NatsConn) Subscribe(errChan chan error) chan *Message {
 		return nil
 	}
 	go func() {
+		errcnt := 0
 		for {
+			if errcnt > 10 {
+				log.Error().Msg("exceeded maximum error threshold")
+				//TODO: Handle this better, currently I think it'll just hang the process
+				break
+			}
 			msgs, err := sub.Fetch(workers, nats.MaxWait(10*time.Second))
 			if err != nil {
+				errcnt++
 				log.Error().Msg(err.Error())
 			}
 			for _, msg := range msgs {
+				log.Debug().Msgf("got message: %f", msg)
 				if err != nil {
 					errChan <- err
 				}
