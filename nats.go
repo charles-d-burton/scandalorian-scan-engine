@@ -33,8 +33,10 @@ func (natsConn *NatsConn) Connect(host, port string, errChan chan error) {
 		errChan <- err
 		return
 	}
+	log.Debug().Msg("setting up nats connection")
 	natsConn.Conn = conn
 
+	log.Debug().Msg("setting up jetstream")
 	natsConn.JS, err = conn.JetStream()
 	if err != nil {
 		log.Debug().Msg("error connecting to jetstream")
