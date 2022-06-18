@@ -3,7 +3,7 @@ package main
 //MessageBus Interface for making generic connections to message busses
 type MessageBus interface {
 	Connect(host, port string, errChan chan error)
-	Subscribe(errChan chan error) chan *Message
+	Subscribe(workers int, errChan chan error) chan *Message
 	Publish(run *Run) error
 	Close()
 }

@@ -77,7 +77,7 @@ func main() {
 
 	go func() {
 		log.Info().Msg("subscribing to bus")
-		dch := bus.Subscribe(errChan)
+		dch := bus.Subscribe(cs.Workers, errChan)
 		if err != nil {
 			log.Fatal().Err(err)
 		}

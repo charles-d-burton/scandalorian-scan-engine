@@ -70,7 +70,7 @@ func (natsConn *NatsConn) Publish(run *Run) error {
  * TODO: There's a bug here where a message needs to be acked back after a scan is finished
  */
 //Subscribe subscribe to a topic in NATS
-func (natsConn *NatsConn) Subscribe(errChan chan error) chan *Message {
+func (natsConn *NatsConn) Subscribe(workers int, errChan chan error) chan *Message {
 	log.Info().Msgf("Listening on topic: %v", subscription)
 	bch := make(chan *Message, 1)
 	sub, err := natsConn.JS.PullSubscribe(subscription, durableName, nats.PullMaxWaiting(128), nats.ManualAck())
