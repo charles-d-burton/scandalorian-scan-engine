@@ -21,7 +21,6 @@ const (
 )
 
 var (
-	workers   int
 	workQueue = make(chan *scandaloriantypes.PortScan, 5)
 	json      = jsoniter.ConfigCompatibleWithStandardLibrary
 )
@@ -70,7 +69,7 @@ func main() {
 	log.Info().Msgf("connecting to message bus: %v:%v", host, cs.BusPort)
 	bus.Connect(host, cs.BusPort, errChan)
 	//Initialize the worker channels by interface
-	err = createWorkerPool(workers, bus)
+	err = createWorkerPool(cs.Workers, bus)
 	if err != nil {
 		log.Fatal().Err(err)
 	}
