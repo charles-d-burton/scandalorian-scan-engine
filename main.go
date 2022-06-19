@@ -1,13 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/Ullaakut/nmap"
 	scandaloriantypes "github.com/charles-d-burton/scandalorian-types"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -22,7 +22,6 @@ const (
 
 var (
 	workQueue = make(chan *scandaloriantypes.PortScan, 5)
-	json      = jsoniter.ConfigCompatibleWithStandardLibrary
 )
 
 type ConfigSpec struct {
@@ -116,10 +115,10 @@ func createWorkerPool(workers int, bus MessageBus) error {
 }
 
 type Run struct {
-	Run       *nmap.Run `json:"nmap_result"`
-	IP        string    `json:"ip"`
-	ScanID    string    `json:"scan_id"`
-	RequestID string    `json:"request_id"`
+	Run       json.RawMessage `json:"nmap_result"`
+	IP        string          `json:"ip"`
+	ScanID    string          `json:"scan_id"`
+	RequestID string          `json:"request_id"`
 }
 
 func (worker *NMAPWorker) start(id int, bus MessageBus) error {
@@ -160,8 +159,9 @@ func (worker *NMAPWorker) start(id int, bus MessageBus) error {
 					log.Info().Msgf("Warning: %v", warn)
 				}
 			}
+			data, err := json.Marshal(result)
 			var run Run
-			run.Run = result
+			run.Run = data
 			run.ScanID = scan.ScanID
 			run.RequestID = scan.RequestID
 			bus.Publish(&run)
