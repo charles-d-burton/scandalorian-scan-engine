@@ -115,10 +115,10 @@ func createWorkerPool(workers int, bus MessageBus) error {
 }
 
 type Run struct {
-	Run       json.RawMessage `json:"nmap_result"`
-	IP        string          `json:"ip"`
-	ScanID    string          `json:"scan_id"`
-	RequestID string          `json:"request_id"`
+	Run       *nmap.Run `json:"nmap_result"`
+	IP        string    `json:"ip"`
+	ScanID    string    `json:"scan_id"`
+	RequestID string    `json:"request_id"`
 }
 
 func (worker *NMAPWorker) start(id int, bus MessageBus) error {
@@ -159,9 +159,8 @@ func (worker *NMAPWorker) start(id int, bus MessageBus) error {
 					log.Info().Msgf("Warning: %v", warn)
 				}
 			}
-			data, err := json.Marshal(result)
 			var run Run
-			run.Run = data
+			run.Run = result
 			run.ScanID = scan.ScanID
 			run.RequestID = scan.RequestID
 			bus.Publish(&run)
